@@ -37,11 +37,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function calculateSummary(records, palletCount = null) {
+        // B規格の小計、○規格の小計、全体の合計を算出する
         const bSubtotal = records.filter((record) => record.category === 'B')
             .reduce((sum, record) => sum + record.quantity, 0);
         const oSubtotal = records.filter((record) => record.category === 'O')
             .reduce((sum, record) => sum + record.quantity, 0);
         const total = records.reduce((sum, record) => sum + record.quantity, 0);
+        // C規格については、10㎏箱のため、パレット積みする上では2倍の数量とし、改めて合計を算出する
         const cQuantity = records.filter((record) => record.category === 'C')
             .reduce((sum, record) => sum + record.quantity, 0);
         const cAdjustedTotal = total + cQuantity;
@@ -57,21 +59,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function buildPalletPlan(records, summary) {
+        // 数量の多い順に並び替える
         const sortedRecords = [...records].sort((left, right) => right.quantity - left.quantity);
+        // パレットの構造体リストを作成する
         const pallets = Array.from({ length: summary.palletCount }, (_, index) => ({
             palletIndex: index + 1,
             totalQuantity: 0,
             standards: []
         }));
-        const seedCount = Math.min(sortedRecords.length, pallets.length);
 
+        // まずは、数量の多い規格をパレットに1つずつ配置する
+        const seedCount = Math.min(sortedRecords.length, pallets.length);
         sortedRecords.slice(0, seedCount).forEach((record, index) => addRecord(pallets[index], record));
 
         sortedRecords.slice(seedCount).forEach((record) => {
+            // C規格を考慮した数値に変換
             const weightedQuantity = getWeightedQuantity(record);
+            // 最大容量144換算箱を超えないパレットを抽出する
             const availablePallets = pallets.filter((pallet) => pallet.totalQuantity + weightedQuantity <= 144);
             const candidates = availablePallets.length > 0 ? availablePallets : pallets;
             const selectedPallet = candidates.reduce((best, pallet) => {
+                // TODO：現状は、B規格と○規格、C規格はが同じパレットに優先的に配置されないケースがあるため、対応する
                 const currentScore = getPlacementScore(pallet, record, summary.averagePerPallet);
                 const bestScore = getPlacementScore(best, record, summary.averagePerPallet);
                 return currentScore < bestScore ? pallet : best;
@@ -91,10 +99,15 @@ document.addEventListener('DOMContentLoaded', () => {
         pallet.standards.push({ ...record, weightedQuantity: getWeightedQuantity(record) });
     }
 
+    // パレットに配置するためのスコアを算出する関数
+    // このスコアが低いほど、パレットに配置するのに適していると判断する
     function getPlacementScore(pallet, record, target) {
+        // この標品を配置した場合のパレットの総量
         const nextTotal = pallet.totalQuantity + getWeightedQuantity(record);
+        // B規格と○規格、C規格は、同じパレットに優先的に配分するためのスコア補正値
         const affinity = specialCategories.has(record.category)
             && pallet.standards.some((item) => specialCategories.has(item.category)) ? 30 : 0;
+        // パレットに配置する平均値との差の絶対値をスコアとし、補正値を加味したスコアを返す
         return Math.abs(nextTotal - target) - affinity;
     }
 
