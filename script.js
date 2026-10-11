@@ -3,10 +3,10 @@ document.addEventListener('DOMContentLoaded', () => {
         ['FGS', 'FG'], ['FG2S', 'FG'], ['FG3S', 'FG'],
         ['3L', '正品'], ['2L', '正品'], ['L', '正品'], ['M', '正品'], ['S', '正品'], ['2S', '正品'],
         ['B3L', 'B'], ['8', 'B'], ['13', 'B'], ['20', 'B'], ['S5', 'B'],
-        ['○8', 'O'], ['○13', 'O'], ['○20', 'O'], ['○S5', 'O'], ['○2S', 'O'],
+        ['丸8', 'O'], ['丸13', 'O'], ['丸20', 'O'], ['丸S5', 'O'], ['丸2S', 'O'],
         ['C', 'C'], ['C2L', 'C'], ['CL', 'C'], ['CM', 'C']
     ];
-    const categoryLabels = { FG: 'FG', 正品: '正品', B: 'B規格', O: '○規格', C: 'C規格' };
+    const categoryLabels = { FG: 'FG', 正品: '正品', B: 'B規格', O: '丸規格', C: 'C規格' };
     const specialCategories = new Set(['B', 'O', 'C']);
     const form = document.getElementById('shipmentForm');
     const standardsGrid = document.getElementById('standardsGrid');
@@ -19,11 +19,19 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentRecords = [];
     let currentSummary = null;
 
-    standardsGrid.innerHTML = standards.map(([name, category]) => `
-        <div class="quantity-field">
-            <label for="quantity-${name}">${name}<span>${categoryLabels[category]}</span></label>
-            <input type="number" id="quantity-${name}" min="0" step="1" inputmode="numeric" placeholder="0" data-standard="${name}" data-category="${category}">
-        </div>
+    const categories = [...new Set(standards.map(([, category]) => category))];
+    standardsGrid.innerHTML = categories.map((category) => `
+        <section class="standards-category standards-category-${category}" aria-label="${categoryLabels[category]}">
+            <h3>${categoryLabels[category]}</h3>
+            <div class="standards-category-fields">
+                ${standards.filter(([, itemCategory]) => itemCategory === category).map(([name]) => `
+                    <div class="quantity-field">
+                        <label for="quantity-${name}">${name}</label>
+                        <input type="number" id="quantity-${name}" min="0" step="1" inputmode="numeric" placeholder="0" data-standard="${name}" data-category="${category}">
+                    </div>
+                `).join('')}
+            </div>
+        </section>
     `).join('');
 
     function getRecords() {
@@ -37,7 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function calculateSummary(records, palletCount = null) {
-        // B規格の小計、○規格の小計、全体の合計を算出する
+        // B規格の小計、丸規格の小計、全体の合計を算出する
         const bSubtotal = records.filter((record) => record.category === 'B')
             .reduce((sum, record) => sum + record.quantity, 0);
         const oSubtotal = records.filter((record) => record.category === 'O')
@@ -79,7 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const availablePallets = pallets.filter((pallet) => pallet.totalQuantity + weightedQuantity <= 144);
             const candidates = availablePallets.length > 0 ? availablePallets : pallets;
             const selectedPallet = candidates.reduce((best, pallet) => {
-                // TODO：現状は、B規格と○規格、C規格はが同じパレットに優先的に配置されないケースがあるため、対応する
+                // TODO：現状は、B規格と丸規格、C規格が同じパレットに優先的に配置されないケースがあるため、対応する
                 const currentScore = getPlacementScore(pallet, record, summary.averagePerPallet);
                 const bestScore = getPlacementScore(best, record, summary.averagePerPallet);
                 return currentScore < bestScore ? pallet : best;
@@ -104,7 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function getPlacementScore(pallet, record, target) {
         // この標品を配置した場合のパレットの総量
         const nextTotal = pallet.totalQuantity + getWeightedQuantity(record);
-        // B規格と○規格、C規格は、同じパレットに優先的に配分するためのスコア補正値
+        // B規格と丸規格、C規格は、同じパレットに優先的に配分するためのスコア補正値
         const affinity = specialCategories.has(record.category)
             && pallet.standards.some((item) => specialCategories.has(item.category)) ? 30 : 0;
         // パレットに配置する平均値との差の絶対値をスコアとし、補正値を加味したスコアを返す
@@ -115,7 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const numberFormat = new Intl.NumberFormat('ja-JP');
         const cards = [
             ['B規格小計', summary.bSubtotal, '箱'],
-            ['○規格小計', summary.oSubtotal, '箱'],
+            ['丸規格小計', summary.oSubtotal, '箱'],
             ['全体合計', summary.total, '箱'],
             ['C規格換算後', summary.cAdjustedTotal, '換算箱'],
             ['1枚あたり平均', summary.averagePerPallet, '換算箱']

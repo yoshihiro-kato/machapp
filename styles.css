@@ -120,16 +120,46 @@ input:focus, select:focus {
 
 .standards-grid {
     display: grid;
-    grid-template-columns: repeat(6, minmax(100px, 1fr));
     gap: 12px;
     margin-top: 24px;
+}
+
+.standards-category {
+    display: grid;
+    grid-template-columns: 100px minmax(0, 1fr);
+    align-items: center;
+    gap: 14px;
+    padding: 12px;
+    border: 1px solid var(--category-border);
+    border-left: 5px solid var(--category-accent);
+    border-radius: 5px;
+    background: var(--category-background);
+}
+
+.standards-category h3 {
+    margin: 0;
+    color: var(--category-accent);
+    font-family: 'Trebuchet MS', sans-serif;
+    font-size: 0.9rem;
+}
+
+.standards-category-FG { --category-accent: #28766f; --category-border: #c6dfd9; --category-background: #edf6f2; }
+.standards-category-正品 { --category-accent: #587b3d; --category-border: #d4e1c7; --category-background: #f2f6ec; }
+.standards-category-B { --category-accent: #a45c26; --category-border: #ead4bd; --category-background: #fbf2e8; }
+.standards-category-O { --category-accent: #426e9b; --category-border: #cbd9e8; --category-background: #eef4fa; }
+.standards-category-C { --category-accent: #a44748; --category-border: #e8caca; --category-background: #fbefef; }
+
+.standards-category-fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 10px;
 }
 
 .quantity-field {
     padding: 12px;
     border: 1px solid var(--line);
     border-radius: 5px;
-    background: #fbf9f2;
+    background: rgba(255, 253, 248, 0.8);
 }
 
 .quantity-field label {
@@ -231,14 +261,15 @@ input:focus, select:focus {
 .breakdown-row strong { color: var(--ink); }
 
 @media (max-width: 820px) {
-    .standards-grid { grid-template-columns: repeat(4, minmax(100px, 1fr)); }
     .summary-cards { grid-template-columns: repeat(3, 1fr); }
     .result-columns { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 560px) {
     body { padding: 30px 12px 48px; }
-    .details-grid, .standards-grid, .summary-cards { grid-template-columns: 1fr 1fr; }
+    .details-grid, .summary-cards { grid-template-columns: 1fr 1fr; }
+    .standards-category { grid-template-columns: 1fr; gap: 8px; }
+    .standards-category-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .details-grid .input-group:nth-child(2) { grid-column: span 2; }
     .summary-card:last-child { grid-column: span 2; }
     .section-heading, .results-heading { display: block; }
